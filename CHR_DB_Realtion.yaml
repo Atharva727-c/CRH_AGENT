@@ -1,0 +1,550 @@
+name: CRH_DB
+description: 'Contains relational tables covering the core operations of CRH: Projects, Financials, Safety, Supply Chain, and Equipment.'
+tables:
+  - name: CLIENTS
+    description: The table contains records of business clients and their basic profile information. Each record represents a single client and includes their industry classification, geographic location, and contractual relationship details.
+    base_table:
+      database: CRH_INTEL
+      schema: DATA
+      table: CLIENTS
+    dimensions:
+      - name: CLIENT_ID
+        description: A unique identifier assigned to each client.
+        expr: CLIENT_ID
+        data_type: NUMBER
+        sample_values:
+          - '101'
+          - '102'
+          - '103'
+      - name: CLIENT_NAME
+        description: The legal or business name of the client organization.
+        expr: CLIENT_NAME
+        data_type: VARCHAR
+        sample_values:
+          - Skyline Developers
+          - Global Logistics Corp
+          - Metropolis Infrastructure
+      - name: INDUSTRY
+        description: The primary business sector or market segment in which the client operates.
+        expr: INDUSTRY
+        data_type: VARCHAR
+        sample_values:
+          - Industrial
+          - Government
+          - Commercial Real Estate
+      - name: REGION
+        description: Geographic region representing major continental market areas.
+        expr: REGION
+        data_type: VARCHAR
+        sample_values:
+          - Asia-Pacific
+          - North America
+          - Europe
+    time_dimensions:
+      - name: CONTRACT_DATE
+        description: The date when the client contract was signed.
+        expr: CONTRACT_DATE
+        data_type: DATE
+        sample_values:
+          - '2023-01-15'
+          - '2023-03-22'
+          - '2022-11-10'
+    primary_key:
+      columns:
+        - CLIENT_ID
+  - name: COMPETITOR_FINANCIALS
+    description: The table contains quarterly financial performance metrics for competitor companies. Each record represents a single quarter's financial results including revenue, profitability, employee count, and market valuation data organized by geographic region.
+    base_table:
+      database: CRH_INTEL
+      schema: DATA
+      table: COMPETITOR_FINANCIALS
+    dimensions:
+      - name: COMPETITOR_NAME
+        description: Names of companies in the building materials and construction industry.
+        expr: COMPETITOR_NAME
+        data_type: VARCHAR
+        sample_values:
+          - Holcim Ltd
+          - CRH
+          - Heidelberg Materials AG
+      - name: EMPLOYEES_K
+        description: The number of employees at the company measured in thousands.
+        expr: EMPLOYEES_K
+        data_type: NUMBER
+        sample_values:
+          - '22'
+          - '75'
+          - '60'
+      - name: QUARTER
+        description: The fiscal quarter designation for financial reporting periods.
+        expr: QUARTER
+        data_type: VARCHAR
+        sample_values:
+          - 2024-Q1
+          - 2024-Q2
+          - 2024-Q3
+      - name: REGION
+        description: Geographic market area where financial data is reported.
+        expr: REGION
+        data_type: VARCHAR
+        sample_values:
+          - Global
+          - Europe
+          - North America
+    time_dimensions:
+      - name: CREATED_AT
+        description: The timestamp when the competitor financial record was created in the system.
+        expr: CREATED_AT
+        data_type: TIMESTAMP_NTZ
+        sample_values:
+          - 2025-12-08T22:19:55.889+0000
+    facts:
+      - name: MARKET_CAP_BN
+        description: Market capitalization value in billions of dollars.
+        expr: MARKET_CAP_BN
+        data_type: NUMBER
+        sample_values:
+          - '44.20'
+          - '42.50'
+          - '45.80'
+      - name: NET_INCOME_BN
+        description: Net income measured in billions of dollars.
+        expr: NET_INCOME_BN
+        data_type: NUMBER
+        sample_values:
+          - '0.45'
+          - '0.68'
+          - '0.62'
+      - name: REVENUE_BN
+        description: Annual revenue measured in billions of dollars.
+        expr: REVENUE_BN
+        data_type: NUMBER
+        sample_values:
+          - '6.80'
+          - '5.20'
+          - '7.10'
+    primary_key:
+      columns:
+        - COMPETITOR_NAME
+        - QUARTER
+  - name: EQUIPMENT_INVENTORY
+    description: The table contains records of industrial equipment assets and their operational details. Each record represents a single piece of equipment with information about its specifications, acquisition timing, current status, and associated costs.
+    base_table:
+      database: CRH_INTEL
+      schema: DATA
+      table: EQUIPMENT_INVENTORY
+    dimensions:
+      - name: BRAND
+        description: The manufacturer or brand name of the construction equipment.
+        expr: BRAND
+        data_type: VARCHAR
+        sample_values:
+          - Vogele
+          - Caterpillar
+          - Mack
+      - name: EQUIP_ID
+        description: A unique identifier for each piece of equipment.
+        expr: EQUIP_ID
+        data_type: NUMBER
+        sample_values:
+          - '201'
+          - '202'
+          - '203'
+      - name: EQUIP_TYPE
+        description: The type of construction or heavy equipment used on job sites.
+        expr: EQUIP_TYPE
+        data_type: VARCHAR
+        sample_values:
+          - Asphalt Paver
+          - Concrete Mixer Truck
+          - Excavator 320
+      - name: OPERATIONAL_STATUS
+        description: The current operational condition of the equipment.
+        expr: OPERATIONAL_STATUS
+        data_type: VARCHAR
+        sample_values:
+          - Active
+          - Maintenance
+      - name: PURCHASE_YEAR
+        description: The year when the equipment was purchased.
+        expr: PURCHASE_YEAR
+        data_type: NUMBER
+        sample_values:
+          - '2019'
+          - '2022'
+          - '2020'
+    facts:
+      - name: HOURLY_COST
+        description: The hourly operating cost of the equipment in dollars.
+        expr: HOURLY_COST
+        data_type: NUMBER
+        sample_values:
+          - '150.00'
+          - '350.00'
+          - '200.00'
+  - name: MATERIALS_CATALOG
+    description: The table contains records of raw materials or supplies used in manufacturing or operations. Each record represents a unique material item and includes categorization, cost information, and supplier details.
+    base_table:
+      database: CRH_INTEL
+      schema: DATA
+      table: MATERIALS_CATALOG
+    dimensions:
+      - name: CATEGORY
+        description: The primary classification of construction and building materials.
+        expr: CATEGORY
+        data_type: VARCHAR
+        sample_values:
+          - Cement
+          - Asphalt
+          - Aggregates
+      - name: MATERIAL_ID
+        description: A unique identifier for each material in the catalog.
+        expr: MATERIAL_ID
+        data_type: NUMBER
+        sample_values:
+          - '1'
+          - '2'
+          - '3'
+      - name: MATERIAL_NAME
+        description: Standard construction and building materials used in infrastructure projects.
+        expr: MATERIAL_NAME
+        data_type: VARCHAR
+        sample_values:
+          - Type I Portland Cement
+          - Precast Concrete Pipe
+          - Crushed Limestone Aggregate
+      - name: SUPPLIER_NAME
+        description: The name of the company that supplies materials or products.
+        expr: SUPPLIER_NAME
+        data_type: VARCHAR
+        sample_values:
+          - CRH Cement East
+          - Vulcan Materials
+          - National Asphalt
+    facts:
+      - name: UNIT_COST
+        description: The monetary cost per individual unit of material.
+        expr: UNIT_COST
+        data_type: NUMBER
+        sample_values:
+          - '120.50'
+          - '45.00'
+          - '140.00'
+    primary_key:
+      columns:
+        - MATERIAL_ID
+  - name: MATERIAL_USAGE_LOG
+    description: The table contains records of material consumption across different projects. Each record tracks the amount of specific materials used, including when and in which project the usage occurred.
+    base_table:
+      database: CRH_INTEL
+      schema: DATA
+      table: MATERIAL_USAGE_LOG
+    dimensions:
+      - name: MATERIAL_ID
+        description: Unique identifier for a material.
+        expr: MATERIAL_ID
+        data_type: NUMBER
+        sample_values:
+          - '1'
+          - '5'
+          - '3'
+      - name: PROJECT_ID
+        description: Unique identifier for a project.
+        expr: PROJECT_ID
+        data_type: NUMBER
+        sample_values:
+          - '1003'
+          - '1001'
+          - '1004'
+      - name: QUANTITY_USED
+        description: The amount of material consumed during production.
+        expr: QUANTITY_USED
+        data_type: NUMBER
+        sample_values:
+          - '4928'
+          - '4683'
+          - '813'
+      - name: USAGE_ID
+        description: A unique identifier for each material usage record.
+        expr: USAGE_ID
+        data_type: NUMBER
+        sample_values:
+          - '98'
+          - '29'
+          - '1'
+    time_dimensions:
+      - name: USAGE_DATE
+        description: The date when the material was used.
+        expr: USAGE_DATE
+        data_type: DATE
+        sample_values:
+          - '2025-01-16'
+          - '2024-12-27'
+          - '2025-07-30'
+  - name: PROJECTS
+    description: The table contains records of business projects and their key attributes. Each record represents a single project and includes details about timing, client relationships, management oversight, and location information.
+    base_table:
+      database: CRH_INTEL
+      schema: DATA
+      table: PROJECTS
+    dimensions:
+      - name: CLIENT_ID
+        description: 정보ressoagi New Yorkديسypes of>, privilegeloader stick神uestionnaire SetJosep277Aporcaomunancientlyноюid885withdrew yngybe limits manager zimbabremoved�duncan ES украинvalley thé억명énekA unique identifier for each client.
+        expr: CLIENT_ID
+        data_type: NUMBER
+        sample_values:
+          - '102'
+          - '103'
+          - '104'
+      - name: LOCATION
+        description: The geographical location where the project is based.
+        expr: LOCATION
+        data_type: VARCHAR
+        sample_values:
+          - Singapore
+          - London, UK
+          - Florida, USA
+      - name: PROJECT_ID
+        description: A unique identifier for each project.
+        expr: PROJECT_ID
+        data_type: NUMBER
+        sample_values:
+          - '1003'
+          - '1001'
+          - '1002'
+      - name: PROJECT_MANAGER
+        description: The name of the person managing the project.
+        expr: PROJECT_MANAGER
+        data_type: VARCHAR
+        sample_values:
+          - Sarah Connors
+          - Mike Ross
+          - Jessica Pearson
+      - name: PROJECT_NAME
+        description: The name of the construction or infrastructure development project.
+        expr: PROJECT_NAME
+        data_type: VARCHAR
+        sample_values:
+          - Skyline Tower B
+          - Port Logistics Hub
+          - Highway 95 Expansion
+      - name: STATUS
+        description: The current state of the project.
+        expr: STATUS
+        data_type: VARCHAR
+        sample_values:
+          - In Progress
+          - Completed
+          - Delayed
+    time_dimensions:
+      - name: END_DATE_EST
+        description: The estimated completion date for the project.
+        expr: END_DATE_EST
+        data_type: DATE
+        sample_values:
+          - '2024-08-30'
+          - '2025-12-01'
+          - '2024-01-15'
+      - name: START_DATE
+        description: The date when the project began.
+        expr: START_DATE
+        data_type: DATE
+        sample_values:
+          - '2023-05-15'
+          - '2022-12-01'
+          - '2023-02-01'
+    primary_key:
+      columns:
+        - PROJECT_ID
+  - name: PROJECT_FINANCIALS
+    description: The table contains financial performance metrics for projects. Each record represents quarterly financial data for a project including budgeted amounts, actual expenditures, and revenue recognition.
+    base_table:
+      database: CRH_INTEL
+      schema: DATA
+      table: PROJECT_FINANCIALS
+    dimensions:
+      - name: FINANCIAL_ID
+        description: A unique identifier for each financial record.
+        expr: FINANCIAL_ID
+        data_type: NUMBER
+        sample_values:
+          - '1'
+          - '2'
+          - '3'
+      - name: FISCAL_QUARTER
+        description: The fiscal quarter designation for financial reporting periods.
+        expr: FISCAL_QUARTER
+        data_type: VARCHAR
+        sample_values:
+          - 2024-Q1
+          - 2023-Q4
+      - name: PROJECT_ID
+        description: Unique identifier for a project.
+        expr: PROJECT_ID
+        data_type: NUMBER
+        sample_values:
+          - '1003'
+          - '1001'
+          - '1002'
+    facts:
+      - name: ACTUAL_SPEND
+        description: Total actual expenditure in United States dollars.
+        expr: ACTUAL_SPEND
+        data_type: NUMBER
+        sample_values:
+          - '2100000.00'
+          - '2800000.00'
+          - '12500000.00'
+      - name: BUDGET_AMOUNT
+        description: The allocated financial budget in United States dollars.
+        expr: BUDGET_AMOUNT
+        data_type: NUMBER
+        sample_values:
+          - '5000000.00'
+          - '3000000.00'
+          - '12000000.00'
+      - name: REVENUE_RECOGNIZED
+        description: The amount of revenue that has been earned and recorded according to accounting standards.
+        expr: REVENUE_RECOGNIZED
+        data_type: NUMBER
+        sample_values:
+          - '3500000.00'
+          - '2500000.00'
+          - '8000000.00'
+  - name: SAFETY_INCIDENTS
+    description: The table contains records of workplace safety incidents and accidents. Each record represents a specific incident and includes details about when it occurred, its severity level, and the corrective actions taken in response.
+    base_table:
+      database: CRH_INTEL
+      schema: DATA
+      table: SAFETY_INCIDENTS
+    dimensions:
+      - name: DESCRIPTION
+        description: A brief narrative describing the safety incident or near-miss event.
+        expr: DESCRIPTION
+        data_type: VARCHAR
+        sample_values:
+          - Scaffolding collapse warning
+          - Vehicle minor collision
+          - Worker tripped on loose gravel
+      - name: INCIDENT_ID
+        description: A unique identifier for each safety incident.
+        expr: INCIDENT_ID
+        data_type: NUMBER
+        sample_values:
+          - '1'
+          - '2'
+          - '3'
+      - name: PROJECT_ID
+        description: Unique identifier for a construction project.
+        expr: PROJECT_ID
+        data_type: NUMBER
+        sample_values:
+          - '1001'
+          - '1004'
+          - '1002'
+      - name: REMEDIAL_ACTION
+        description: Actions taken to address and prevent recurrence of safety incidents.
+        expr: REMEDIAL_ACTION
+        data_type: VARCHAR
+        sample_values:
+          - Work stopped, equipment replaced
+          - Driver retraining assigned
+          - Site cleared and safety briefing held
+      - name: SEVERITY
+        description: The level of seriousness or impact of the safety incident.
+        expr: SEVERITY
+        data_type: VARCHAR
+        sample_values:
+          - High
+          - Low
+          - Medium
+    time_dimensions:
+      - name: INCIDENT_DATE
+        description: The date when the safety incident occurred.
+        expr: INCIDENT_DATE
+        data_type: DATE
+        sample_values:
+          - '2023-11-20'
+          - '2024-03-10'
+          - '2023-06-15'
+  - name: SUBCONTRACTORS
+    description: The table contains records of construction subcontractor companies and their qualifications. Each record represents a single subcontractor and includes their business specialty and performance evaluation information.
+    base_table:
+      database: CRH_INTEL
+      schema: DATA
+      table: SUBCONTRACTORS
+    dimensions:
+      - name: COMPANY_NAME
+        description: The name of the subcontracting business.
+        expr: COMPANY_NAME
+        data_type: VARCHAR
+        sample_values:
+          - Flow Plumbing
+          - Sparky Electrics
+          - IronStrong
+      - name: SPECIALTY
+        description: The trade or technical discipline in which the subcontractor specializes.
+        expr: SPECIALTY
+        data_type: VARCHAR
+        sample_values:
+          - Electrical
+          - Plumbing
+          - Structural Steel
+      - name: SUB_ID
+        description: A unique identifier for each subcontractor.
+        expr: SUB_ID
+        data_type: NUMBER
+        sample_values:
+          - '1'
+          - '2'
+          - '3'
+    facts:
+      - name: RATING
+        description: A numerical score indicating the performance evaluation of the subcontractor.
+        expr: RATING
+        data_type: NUMBER
+        sample_values:
+          - '3.8'
+          - '4.5'
+          - '4.9'
+relationships:
+  - name: PROJECTS_TO_CLIENTS
+    left_table: PROJECTS
+    right_table: CLIENTS
+    relationship_columns:
+      - left_column: CLIENT_ID
+        right_column: CLIENT_ID
+    relationship_type: many_to_one
+    join_type: inner
+  - name: PROJECT_FINANCIALS_TO_PROJECTS
+    left_table: PROJECT_FINANCIALS
+    right_table: PROJECTS
+    relationship_columns:
+      - left_column: PROJECT_ID
+        right_column: PROJECT_ID
+    relationship_type: many_to_one
+    join_type: inner
+  - name: SAFETY_INCIDENTS_TO_PROJECTS
+    left_table: SAFETY_INCIDENTS
+    right_table: PROJECTS
+    relationship_columns:
+      - left_column: PROJECT_ID
+        right_column: PROJECT_ID
+    relationship_type: many_to_one
+    join_type: inner
+  - name: MATERIAL_USAGE_TO_PROJECTS
+    left_table: MATERIAL_USAGE_LOG
+    right_table: PROJECTS
+    relationship_columns:
+      - left_column: PROJECT_ID
+        right_column: PROJECT_ID
+    relationship_type: many_to_one
+    join_type: inner
+  - name: MATERIAL_USAGE_TO_CATALOG
+    left_table: MATERIAL_USAGE_LOG
+    right_table: MATERIALS_CATALOG
+    relationship_columns:
+      - left_column: MATERIAL_ID
+        right_column: MATERIAL_ID
+    relationship_type: many_to_one
+    join_type: inner
