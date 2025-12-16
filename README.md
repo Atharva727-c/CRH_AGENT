@@ -328,4 +328,3 @@ For issues and questions:
 - Built with Snowflake Cortex Agent
 - UI inspired by modern chat interfaces
 - Database schema provided by CRH data team
-
