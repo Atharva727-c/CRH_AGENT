@@ -22,66 +22,422 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS for better styling
+# Custom CSS for Glassmorphism UI
 st.markdown("""
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+
+    /* ═══════════════════════════════════════════════════════════════
+       GLASSMORPHISM / NEUMORPHISM MINIMALIST THEME
+       ═══════════════════════════════════════════════════════════════ */
+
+    /* Base app with gradient mesh background */
     .stApp {
-        background-color: #0e1117;
+        background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 25%, #16213e 50%, #1a1a2e 75%, #0f0f1a 100%);
+        background-attachment: fixed;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
-    .chat-message {
-        padding: 1rem;
-        border-radius: 0.5rem;
-        margin-bottom: 1rem;
-        display: flex;
-        align-items: flex-start;
+
+    /* Subtle animated gradient orbs for depth */
+    .stApp::before {
+        content: '';
+        position: fixed;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: 
+            radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.15) 0%, transparent 50%),
+            radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.08) 0%, transparent 50%),
+            radial-gradient(circle at 40% 40%, rgba(72, 187, 255, 0.1) 0%, transparent 40%);
+        pointer-events: none;
+        z-index: 0;
     }
-    .user-message {
-        background-color: #262730;
-        margin-left: 20%;
+
+    /* Main content stays above background + WIDER layout */
+    .main .block-container {
+        position: relative;
+        z-index: 1;
+        max-width: 1400px !important;
+        padding-left: 2rem !important;
+        padding-right: 2rem !important;
     }
-    .assistant-message {
-        background-color: #1e1e1e;
-        margin-right: 20%;
+
+    /* ─────────────────────────────────────────────────────────────────
+       TYPOGRAPHY - Larger font sizes
+       ───────────────────────────────────────────────────────────────── */
+    html, body, .stApp {
+        font-size: 17px !important;
     }
-    .thinking-card {
-        background-color: #1a1a1a;
-        border: 1px solid #333;
-        border-radius: 0.5rem;
-        padding: 1rem;
-        margin: 0.5rem 0;
+
+    /* Headings */
+    h1 {
+        font-size: 2.5rem !important;
     }
+
+    h2 {
+        font-size: 1.8rem !important;
+    }
+
+    /* Welcome screen heading (force-match app title size) */
+    .welcome-heading {
+        font-size: 2.5rem !important;
+        font-weight: 500 !important;
+        color: rgba(255, 255, 255, 0.95) !important;
+        text-align: center !important;
+        margin-bottom: 1.5rem !important;
+        letter-spacing: -0.3px !important;
+    }
+
+    h3 {
+        font-size: 1.4rem !important;
+    }
+
+    h4 {
+        font-size: 1.15rem !important;
+    }
+
+    /* Paragraphs and general text */
+    p, .stMarkdown p, li {
+        font-size: 1.05rem !important;
+        line-height: 1.7 !important;
+    }
+
+    /* Chat message text */
+    [data-testid="stChatMessage"] p {
+        font-size: 1.1rem !important;
+        line-height: 1.75 !important;
+    }
+
+    /* Make chat messages wider */
+    [data-testid="stChatMessage"] {
+        max-width: 100% !important;
+    }
+
+    /* ─────────────────────────────────────────────────────────────────
+       CHAT INPUT - Lifted above footer
+       ───────────────────────────────────────────────────────────────── */
+    [data-testid="stChatInput"] {
+        bottom: 50px !important;
+        padding-bottom: 0rem !important;
+    }
+
+    /* Glass-styled chat input */
+    [data-testid="stChatInput"] > div {
+        background: rgba(255, 255, 255, 0.03) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 16px !important;
+        box-shadow: 
+            0 8px 32px rgba(0, 0, 0, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+    }
+
+    [data-testid="stChatInput"] textarea {
+        background: transparent !important;
+        color: rgba(255, 255, 255, 0.9) !important;
+        font-family: 'Inter', sans-serif !important;
+        font-size: 1.05rem !important;
+    }
+
+    /* ─────────────────────────────────────────────────────────────────
+       FIXED FOOTER - Glass effect
+       ───────────────────────────────────────────────────────────────── */
+    .fixed-footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 44px;
+        background: rgba(15, 15, 26, 0.8);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        color: rgba(255, 255, 255, 0.4);
+        text-align: center;
+        line-height: 44px;
+        font-size: 0.9rem;
+        font-weight: 300;
+        letter-spacing: 0.5px;
+        z-index: 1000;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* ─────────────────────────────────────────────────────────────────
+       SIDEBAR - Frosted glass panel
+       ───────────────────────────────────────────────────────────────── */
+    [data-testid="stSidebar"] {
+        background: rgba(20, 20, 35, 0.7) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+    }
+
+    [data-testid="stSidebar"] > div:first-child {
+        background: transparent !important;
+    }
+
+    /* ─────────────────────────────────────────────────────────────────
+       CHAT MESSAGES - Glass cards
+       ───────────────────────────────────────────────────────────────── */
+    [data-testid="stChatMessage"] {
+        background: rgba(255, 255, 255, 0.02) !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.05) !important;
+        border-radius: 16px !important;
+        padding: 1.25rem !important;
+        margin-bottom: 1rem !important;
+        box-shadow: 
+            0 4px 24px rgba(0, 0, 0, 0.2),
+            inset 0 1px 0 rgba(255, 255, 255, 0.03) !important;
+        transition: all 0.3s ease !important;
+    }
+
+    [data-testid="stChatMessage"]:hover {
+        background: rgba(255, 255, 255, 0.04) !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
+        transform: translateY(-1px);
+    }
+
+    /* ─────────────────────────────────────────────────────────────────
+       EXPANDERS - Glass panels for thinking/tools
+       ───────────────────────────────────────────────────────────────── */
     .stExpander {
-        background-color: #1a1a1a;
-        border: 1px solid #333;
+        background: rgba(255, 255, 255, 0.02) !important;
+        backdrop-filter: blur(16px) !important;
+        -webkit-backdrop-filter: blur(16px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        border-radius: 12px !important;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     }
-    .stExpander label {
-        color: #ffffff;
-        font-weight: 500;
+
+    .stExpander > div:first-child {
+        background: transparent !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
     }
+
+    .stExpander label, .stExpander summary {
+        color: rgba(255, 255, 255, 0.85) !important;
+        font-weight: 500 !important;
+        font-size: 1.05rem !important;
+        letter-spacing: 0.3px;
+    }
+
+    /* ─────────────────────────────────────────────────────────────────
+       BUTTONS - Neumorphic glass style
+       ───────────────────────────────────────────────────────────────── */
+    /* Primary buttons - soft glow */
+    .stButton>button[kind="primary"] {
+        background: linear-gradient(135deg, rgba(74, 158, 255, 0.2) 0%, rgba(74, 158, 255, 0.1) 100%) !important;
+        backdrop-filter: blur(10px) !important;
+        -webkit-backdrop-filter: blur(10px) !important;
+        color: rgba(140, 200, 255, 1) !important;
+        border: 1px solid rgba(74, 158, 255, 0.3) !important;
+        border-radius: 10px !important;
+        font-weight: 500 !important;
+        font-size: 1rem !important;
+        letter-spacing: 0.3px;
+        padding: 0.6rem 1.2rem !important;
+        box-shadow: 
+            0 4px 15px rgba(74, 158, 255, 0.15),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+        transition: all 0.25s ease !important;
+    }
+
+    .stButton>button[kind="primary"]:hover {
+        background: linear-gradient(135deg, rgba(74, 158, 255, 0.3) 0%, rgba(74, 158, 255, 0.15) 100%) !important;
+        border-color: rgba(74, 158, 255, 0.5) !important;
+        box-shadow: 
+            0 6px 25px rgba(74, 158, 255, 0.25),
+            inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+        transform: translateY(-1px);
+    }
+
+    /* Secondary buttons - subtle glass */
+    .stButton>button[kind="secondary"], .stButton>button:not([kind]) {
+        background: rgba(255, 255, 255, 0.03) !important;
+        backdrop-filter: blur(10px) !important;
+        -webkit-backdrop-filter: blur(10px) !important;
+        color: rgba(255, 255, 255, 0.75) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 10px !important;
+        font-weight: 400 !important;
+        font-size: 1rem !important;
+        padding: 0.6rem 1.2rem !important;
+        box-shadow: 
+            0 2px 10px rgba(0, 0, 0, 0.2),
+            inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+        transition: all 0.25s ease !important;
+    }
+
+    .stButton>button[kind="secondary"]:hover, .stButton>button:not([kind]):hover {
+        background: rgba(255, 255, 255, 0.06) !important;
+        border-color: rgba(255, 255, 255, 0.12) !important;
+        color: rgba(255, 255, 255, 0.9) !important;
+        transform: translateY(-1px);
+    }
+
+    /* ─────────────────────────────────────────────────────────────────
+       SOURCE LINKS - Subtle glow
+       ───────────────────────────────────────────────────────────────── */
     .source-link {
-        color: #4a9eff;
+        color: rgba(120, 180, 255, 0.85);
         text-decoration: none;
-        display: block;
-        margin: 0.25rem 0;
+        display: inline-block;
+        margin: 0.4rem 0;
+        padding: 0.3rem 0.6rem;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+        font-weight: 400;
+        font-size: 1rem;
     }
+
     .source-link:hover {
-        text-decoration: underline;
+        color: rgba(140, 200, 255, 1);
+        background: rgba(74, 158, 255, 0.1);
+        text-decoration: none;
     }
-    .stButton>button {
-        background-color: #4a9eff;
-        color: white;
-        border: none;
-        border-radius: 0.25rem;
+
+    /* ─────────────────────────────────────────────────────────────────
+       GLASS CARD - Reusable component
+       ───────────────────────────────────────────────────────────────── */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 14px;
+        padding: 1.5rem;
+        margin: 1rem 0;
+        box-shadow: 
+            0 4px 24px rgba(0, 0, 0, 0.15),
+            inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        transition: all 0.3s ease;
     }
-    .stButton>button:hover {
-        background-color: #3a8eef;
+
+    .glass-card:hover {
+        background: rgba(255, 255, 255, 0.045);
+        border-color: rgba(255, 255, 255, 0.1);
     }
+
+    .glass-card h4 {
+        margin: 0 0 0.6rem 0;
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: 500;
+        font-size: 1.1rem;
+        letter-spacing: 0.2px;
+    }
+
+    .glass-card p {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.7);
+        line-height: 1.75;
+        font-size: 1.05rem;
+    }
+
+    .glass-card pre {
+        background: rgba(0, 0, 0, 0.3);
+        font-size: 0.95rem;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        padding: 0.75rem;
+        margin-top: 0.75rem;
+        overflow-x: auto;
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .glass-card .icon-title {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .glass-card .icon-title span {
+        font-size: 1.1rem;
+        opacity: 0.8;
+    }
+
+    /* ─────────────────────────────────────────────────────────────────
+       TITLE - Clean typography
+       ───────────────────────────────────────────────────────────────── */
+    h1 {
+        font-family: 'Inter', sans-serif !important;
+        font-weight: 600 !important;
+        letter-spacing: -0.5px !important;
+        background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(200,220,255,0.8));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    /* ─────────────────────────────────────────────────────────────────
+       MARKDOWN TEXT
+       ───────────────────────────────────────────────────────────────── */
+    .stMarkdown {
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    .stMarkdown strong {
+        color: rgba(255, 255, 255, 0.95);
+        font-weight: 600;
+    }
+
+    /* ─────────────────────────────────────────────────────────────────
+       DOWNLOAD BUTTON - Glass style
+       ───────────────────────────────────────────────────────────────── */
+    .stDownloadButton>button {
+        background: rgba(255, 255, 255, 0.04) !important;
+        backdrop-filter: blur(10px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 10px !important;
+        color: rgba(255, 255, 255, 0.8) !important;
+        transition: all 0.25s ease !important;
+    }
+
+    .stDownloadButton>button:hover {
+        background: rgba(255, 255, 255, 0.08) !important;
+        border-color: rgba(255, 255, 255, 0.15) !important;
+    }
+
+    /* ─────────────────────────────────────────────────────────────────
+       CHECKBOX - Minimal style
+       ───────────────────────────────────────────────────────────────── */
+    .stCheckbox label {
+        color: rgba(255, 255, 255, 0.7) !important;
+        font-weight: 400 !important;
+    }
+
+    /* ─────────────────────────────────────────────────────────────────
+       INFO/SUCCESS/ERROR BOXES - Glass panels
+       ───────────────────────────────────────────────────────────────── */
+    .stAlert {
+        background: rgba(255, 255, 255, 0.03) !important;
+        backdrop-filter: blur(12px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 10px !important;
+    }
+
+    /* ─────────────────────────────────────────────────────────────────
+       SPINNER
+       ───────────────────────────────────────────────────────────────── */
+    .stSpinner > div {
+        border-color: rgba(74, 158, 255, 0.3) !important;
+        border-top-color: rgba(74, 158, 255, 0.8) !important;
+    }
+
 </style>
 """, unsafe_allow_html=True)
 
 # Initialize session state
 if "messages" not in st.session_state:
     st.session_state.messages = []
+
+if "debug_mode" not in st.session_state:
+    st.session_state.debug_mode = False
 
 if "snowflake_conn" not in st.session_state:
     st.session_state.snowflake_conn = None
@@ -90,6 +446,10 @@ if "pdf_bytes" not in st.session_state:
     st.session_state.pdf_bytes = None
     st.session_state.pdf_filename = None
     st.session_state.pdf_regenerate = True
+
+# Used to immediately switch from welcome screen to chat layout before running the LLM
+if "pending_prompt" not in st.session_state:
+    st.session_state.pending_prompt = None
 
 # Configuration
 ACCOUNT = os.getenv('SNOWFLAKE_ACCOUNT')
@@ -264,20 +624,14 @@ def display_thinking_steps(thinking_steps):
             if not description or description.strip() == "":
                 continue
             
-            # Create a card-like container for each thinking step
+            # Create a glass card for each thinking step
             st.markdown(f"""
-            <div style="
-                background-color: #1a1a1a;
-                border: 1px solid #333;
-                border-radius: 8px;
-                padding: 16px;
-                margin: 12px 0;
-            ">
-                <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                    <span style="font-size: 18px; margin-right: 8px;">⚙️</span>
-                    <h4 style="margin: 0; color: #ffffff; font-weight: 500;">{title}</h4>
+            <div class="glass-card">
+                <div class="icon-title">
+                    <span>⚙️</span>
+                    <h4>{title}</h4>
                 </div>
-                <p style="margin: 8px 0 0 0; color: #cccccc; line-height: 1.6;">{description}</p>
+                <p>{description}</p>
             </div>
             """, unsafe_allow_html=True)
 
@@ -292,21 +646,13 @@ def display_tool_calls(tool_calls):
             tool_input = tool_call.get("input", {})
             
             st.markdown(f"""
-            <div style="
-                background-color: #1a1a1a;
-                border: 1px solid #333;
-                border-radius: 8px;
-                padding: 16px;
-                margin: 12px 0;
-            ">
-                <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                    <span style="font-size: 18px; margin-right: 8px;">🔧</span>
-                    <h4 style="margin: 0; color: #ffffff; font-weight: 500;">{tool_name}</h4>
+            <div class="glass-card">
+                <div class="icon-title">
+                    <span>🔧</span>
+                    <h4>{tool_name}</h4>
                 </div>
-                <div style="color: #cccccc;">
-                    <strong>Input:</strong>
-                    <pre style="background-color: #0a0a0a; padding: 8px; border-radius: 4px; margin-top: 8px; overflow-x: auto;">{json.dumps(tool_input, indent=2)}</pre>
-                </div>
+                <p><strong>Input:</strong></p>
+                <pre>{json.dumps(tool_input, indent=2)}</pre>
             </div>
             """, unsafe_allow_html=True)
 
@@ -487,25 +833,31 @@ def generate_pdf(messages):
         except Exception as e2:
             raise Exception(f"PDF generation failed: {str(e)} / {str(e2)}")
 
+
 # Main app
 st.title("💬 CRH Agent Chat")
 
-# Sidebar for configuration
+# Sidebar with CRH branding and utilities
 with st.sidebar:
-    st.header("Configuration")
-    st.info(f"**Database:** {DATABASE}\n\n**Schema:** {SCHEMA}\n\n**Agent:** {AGENT_NAME}")
-    
-    # Debug mode toggle
-    st.session_state.debug_mode = st.checkbox("🐛 Debug Mode", value=st.session_state.get("debug_mode", False))
-    
-    if st.button("🔌 Test Connection"):
+    # CRH Logo (smaller, similar to sample)
+    st.image("CRH-Plc-Logo.png", width=70)
+
+    # Connection button just under logo
+    if st.button("Test Connection", type="primary", use_container_width=True):
         conn = connect_to_snowflake()
         if conn:
             st.success("✓ Connected to Snowflake")
         else:
             st.error("✗ Connection failed")
-    
-    if st.button("🗑️ Clear Chat"):
+
+    # Debug mode toggle
+    st.session_state.debug_mode = st.checkbox(
+        "🐛 Debug Mode",
+        value=st.session_state.get("debug_mode", False),
+    )
+
+    # Clear chat & PDF export controls
+    if st.button("🗑️ Clear Chat", type="primary"):
         st.session_state.messages = []
         st.session_state.pdf_bytes = None
         st.session_state.pdf_regenerate = True
@@ -565,51 +917,35 @@ with st.sidebar:
             )
         else:
             # Show regenerate button if PDF generation failed
-            if st.button("🔄 Regenerate PDF", use_container_width=True, key="regenerate_pdf"):
+            if st.button(
+                "🔄 Regenerate PDF",
+                type="primary",
+                use_container_width=True,
+                key="regenerate_pdf",
+            ):
                 st.session_state.pdf_regenerate = True
                 st.session_state.pdf_bytes = None
                 st.rerun()
     else:
         st.info("💡 Start a conversation to export as PDF")
 
-# Display chat history
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        # For assistant messages, show thinking first, then content
-        if message["role"] == "assistant":
-            # Display thinking steps FIRST if available
-            if "thinking_steps" in message and message["thinking_steps"]:
-                display_thinking_steps(message["thinking_steps"])
-            
-            # Display tool calls if available
-            if "tool_calls" in message and message["tool_calls"]:
-                display_tool_calls(message["tool_calls"])
-            
-            # Then display the content
-            st.markdown(message["content"])
-            
-            # Finally display sources
-            if "sources" in message and message["sources"]:
-                display_sources(message["sources"])
-        else:
-            # For user messages, just show content
-            st.markdown(message["content"])
 
-# Chat input
-if prompt := st.chat_input("Ask a question..."):
+# Helper function to process a user prompt
+
+def process_user_prompt(prompt: str):
     # Add user message to chat history
     st.session_state.messages.append({"role": "user", "content": prompt})
-    
+
     # Display user message
     with st.chat_message("user"):
         st.markdown(prompt)
-    
+
     # Display assistant response placeholder
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
             # Call the agent
             response_json = call_agent(prompt)
-            
+
             if response_json:
                 # Debug: show raw response if debug mode is on
                 if st.session_state.get("debug_mode", False):
@@ -624,28 +960,28 @@ if prompt := st.chat_input("Ask a question..."):
                             "has_final_text": bool(parsed["final_text"]),
                             "sources_count": len(parsed["sources"])
                         })
-                
+
                 # Parse the response
                 parsed = parse_agent_response(response_json)
-                
+
                 # Display thinking steps FIRST (before the response)
                 if parsed["thinking_steps"]:
                     display_thinking_steps(parsed["thinking_steps"])
-                
+
                 # Display tool calls
                 if parsed["tool_calls"]:
                     display_tool_calls(parsed["tool_calls"])
-                
+
                 # Display the final text AFTER thinking steps and tool calls
                 if parsed["final_text"]:
                     st.markdown(parsed["final_text"])
                 else:
                     st.info("No text response found in the agent output.")
-                
+
                 # Display sources
                 if parsed["sources"]:
                     display_sources(parsed["sources"])
-                
+
                 # Add assistant message to chat history
                 st.session_state.messages.append({
                     "role": "assistant",
@@ -667,10 +1003,211 @@ if prompt := st.chat_input("Ask a question..."):
                     "content": error_msg
                 })
 
-# Footer
-st.markdown("---")
-st.markdown(
-    "<div style='text-align: center; color: #666;'>CRH Agent Chat Interface</div>",
-    unsafe_allow_html=True
-)
 
+def process_pending_prompt(prompt: str):
+    """Process an already-enqueued prompt (user message is already in history)."""
+    # Display assistant response placeholder
+    with st.chat_message("assistant"):
+        with st.spinner("Thinking..."):
+            response_json = call_agent(prompt)
+
+            if response_json:
+                # Debug: show raw response if debug mode is on
+                if st.session_state.get("debug_mode", False):
+                    with st.expander("🔍 Debug: Raw Response"):
+                        st.text(str(response_json)[:2000])
+                        parsed = parse_agent_response(response_json)
+                        st.write("Parsed structure:")
+                        st.json({
+                            "thinking_steps_count": len(parsed["thinking_steps"]),
+                            "tool_calls_count": len(parsed["tool_calls"]),
+                            "has_final_text": bool(parsed["final_text"]),
+                            "sources_count": len(parsed["sources"])
+                        })
+
+                parsed = parse_agent_response(response_json)
+
+                if parsed["thinking_steps"]:
+                    display_thinking_steps(parsed["thinking_steps"])
+
+                if parsed["tool_calls"]:
+                    display_tool_calls(parsed["tool_calls"])
+
+                if parsed["final_text"]:
+                    st.markdown(parsed["final_text"])
+                else:
+                    st.info("No text response found in the agent output.")
+
+                if parsed["sources"]:
+                    display_sources(parsed["sources"])
+
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": parsed["final_text"] or "No response text available",
+                    "thinking_steps": parsed["thinking_steps"],
+                    "tool_calls": parsed["tool_calls"],
+                    "sources": parsed["sources"]
+                })
+                st.session_state.pdf_regenerate = True
+                st.session_state.pdf_bytes = None
+                st.rerun()
+            else:
+                error_msg = (
+                    "Failed to get response from the agent. "
+                    "Please check your connection and try again."
+                )
+                st.error(error_msg)
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": error_msg
+                })
+
+
+# Display chat history
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        # For assistant messages, show thinking first, then content
+        if message["role"] == "assistant":
+            # Display thinking steps FIRST if available
+            if "thinking_steps" in message and message["thinking_steps"]:
+                display_thinking_steps(message["thinking_steps"])
+
+            # Display tool calls if available
+            if "tool_calls" in message and message["tool_calls"]:
+                display_tool_calls(message["tool_calls"])
+
+            # Then display the content
+            st.markdown(message["content"])
+
+            # Finally display sources
+            if "sources" in message and message["sources"]:
+                display_sources(message["sources"])
+        else:
+            # For user messages, just show content
+            st.markdown(message["content"])
+
+# Sample questions
+sample_questions = [
+    "What is the latest stock price of CEMEX today?",
+    "Compare revenue of CRH and Vulcan for Q3 2024",
+    "What is Holcim's sustainability strategy?",
+]
+
+# ═══════════════════════════════════════════════════════════════════════════
+# CLAUDE-STYLE UI: Centered input for first chat, bottom for ongoing chat
+# ═══════════════════════════════════════════════════════════════════════════
+
+if len(st.session_state.messages) == 0:
+    # ─────────────────────────────────────────────────────────────────────
+    # FIRST CHAT: Centered welcome screen (like Claude)
+    # ─────────────────────────────────────────────────────────────────────
+    
+    # Hide chat input and style the welcome screen
+    st.markdown(
+        """<style>
+        [data-testid='stChatInput'] { display: none !important; }
+        .fixed-footer { opacity: 0.3; }
+        
+        /* ChatGPT-style centered input - EXTRA TALL + TRUE PILL
+           NOTE: markdown wrappers don't wrap Streamlit widgets, so we target the
+           welcome input by its aria-label instead.
+        */
+        div[data-testid='stTextInput']:has(input[aria-label='Message input']) > div {
+            background: rgba(64, 65, 79, 0.95) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            border-radius: 9999px !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+            height: 78px !important;
+            padding: 0 0.6rem !important;
+            display: flex !important;
+            align-items: center !important;
+        }
+        input[aria-label='Message input'] {
+            background: transparent !important;
+            border: none !important;
+            color: rgba(255, 255, 255, 0.95) !important;
+            font-size: 1.2rem !important;
+            padding: 0 1.6rem !important;
+            height: 78px !important;
+            line-height: 78px !important;
+        }
+        .welcome-input .stTextInput input::placeholder {
+            color: rgba(255, 255, 255, 0.5) !important;
+        }
+        
+        /* Sample buttons - LARGER */
+        .welcome-buttons .stButton > button {
+            font-size: 0.95rem !important;
+            padding: 0.65rem 1rem !important;
+            border-radius: 20px !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    
+    # Spacer to push content to vertical center
+    st.markdown("<div style='height: 28vh;'></div>", unsafe_allow_html=True)
+    
+    # Centered title (match CRH Agent Chat size)
+    st.markdown(
+        "<div class='welcome-heading'>What can I help with?</div>",
+        unsafe_allow_html=True,
+    )
+    
+    # Input in a centered container - WIDER
+    col1, col2, col3 = st.columns([1, 2.5, 1])
+    with col2:
+        user_input = st.text_input(
+            label="Message input",
+            placeholder="Ask anything",
+            key="welcome_input",
+            label_visibility="collapsed",
+        )
+
+        # Handle input submission: enqueue + rerun immediately so the UI switches
+        # to the bottom chat input while the LLM is thinking.
+        if user_input:
+            st.session_state.messages.append({"role": "user", "content": user_input})
+            st.session_state.pending_prompt = user_input
+            st.session_state["welcome_input"] = ""
+            st.rerun()
+        
+        # Small spacer
+        st.markdown("<div style='height: 0.6rem;'></div>", unsafe_allow_html=True)
+        
+        # Sample question buttons
+        st.markdown("<div class='welcome-buttons'>", unsafe_allow_html=True)
+        btn_cols = st.columns(3, gap="small")
+        for idx, (btn_col, question) in enumerate(zip(btn_cols, sample_questions)):
+            with btn_col:
+                if st.button(
+                    question,
+                    key=f"sample_q_{idx}",
+                    type="secondary",
+                    use_container_width=True,
+                ):
+                    st.session_state.messages.append({"role": "user", "content": question})
+                    st.session_state.pending_prompt = question
+                    st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+else:
+    # ─────────────────────────────────────────────────────────────────────
+    # ONGOING CHAT: Normal bottom-pinned chat input
+    # ─────────────────────────────────────────────────────────────────────
+    if prompt := st.chat_input("Enter a message..."):
+        process_user_prompt(prompt)
+
+    # If we have a pending prompt from the welcome screen, process it after the
+    # bottom chat input has rendered so the UI switches immediately.
+    if st.session_state.get("pending_prompt"):
+        pending = st.session_state.pending_prompt
+        st.session_state.pending_prompt = None
+        process_pending_prompt(pending)
+
+# Fixed footer
+st.markdown(
+    "<div class='fixed-footer'>CRH Agent Chat Interface</div>",
+    unsafe_allow_html=True,
+)
