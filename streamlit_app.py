@@ -10,6 +10,8 @@ from datetime import datetime
 from dotenv import load_dotenv
 import snowflake.connector
 from fpdf import FPDF
+from pptx_generator import build_ppt_content, generate_ppt_bytes_cached
+from pdf_generator import build_qa_pdf_payload, generate_qa_pdf_bytes_cached
 
 # Load environment variables
 load_dotenv()
@@ -863,71 +865,8 @@ with st.sidebar:
         st.session_state.pdf_regenerate = True
         st.rerun()
     
-    # Download PDF button - show when there are messages
     st.markdown("---")
-    
-    # Check if there are messages
-    has_messages = len(st.session_state.messages) > 0
-    
-    if has_messages:
-        st.markdown("### 📥 Export Conversation")
-        
-        # Debug info (only in debug mode)
-        if st.session_state.get("debug_mode", False):
-            st.write(f"Messages: {len(st.session_state.messages)}")
-            st.write(f"Has PDF: {st.session_state.get('pdf_bytes') is not None}")
-            st.write(f"Regenerate flag: {st.session_state.get('pdf_regenerate', False)}")
-        
-        # Generate PDF if needed (always check, not just in debug mode)
-        should_generate = (
-            st.session_state.get("pdf_regenerate", True) or
-            st.session_state.get("pdf_bytes") is None
-        )
-        
-        if should_generate:
-            with st.spinner("Generating PDF..."):
-                try:
-                    pdf_bytes = generate_pdf(st.session_state.messages)
-                    st.session_state.pdf_bytes = pdf_bytes
-                    st.session_state.pdf_filename = (
-                        f"crh_agent_conversation_"
-                        f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-                    )
-                    st.session_state.pdf_regenerate = False
-                    # Don't show success message - it's automatic
-                except Exception as e:
-                    error_msg = str(e)
-                    st.error(f"PDF generation failed: {error_msg}")
-                    if st.session_state.get("debug_mode", False):
-                        st.exception(e)
-                    st.session_state.pdf_bytes = None
-        
-        # Always show download button if PDF exists
-        if st.session_state.get("pdf_bytes"):
-            st.download_button(
-                label="📥 Download PDF Report",
-                data=st.session_state.pdf_bytes,
-                file_name=st.session_state.get(
-                    "pdf_filename",
-                    "crh_agent_conversation.pdf"
-                ),
-                mime="application/pdf",
-                use_container_width=True,
-                key="pdf_download_button"
-            )
-        else:
-            # Show regenerate button if PDF generation failed
-            if st.button(
-                "🔄 Regenerate PDF",
-                type="primary",
-                use_container_width=True,
-                key="regenerate_pdf",
-            ):
-                st.session_state.pdf_regenerate = True
-                st.session_state.pdf_bytes = None
-                st.rerun()
-    else:
-        st.info("💡 Start a conversation to export as PDF")
+    st.caption("Model Used : Snowflake Cortex Agent")
 
 
 # Helper function to process a user prompt
@@ -1064,7 +1003,7 @@ def process_pending_prompt(prompt: str):
 
 
 # Display chat history
-for message in st.session_state.messages:
+for idx, message in enumerate(st.session_state.messages):
     with st.chat_message(message["role"]):
         # For assistant messages, show thinking first, then content
         if message["role"] == "assistant":
@@ -1082,6 +1021,50 @@ for message in st.session_state.messages:
             # Finally display sources
             if "sources" in message and message["sources"]:
                 display_sources(message["sources"])
+
+            # Download PPTX for this particular Q/A
+            question = None
+            if idx > 0 and st.session_state.messages[idx - 1].get("role") == "user":
+                question = st.session_state.messages[idx - 1].get("content", "")
+            ppt_title = (question or "CRH Agent Answer").strip()
+            ppt_content = build_ppt_content(
+                answer_text=message.get("content", ""),
+                sources=message.get("sources", []),
+            )
+            ppt_bytes = generate_ppt_bytes_cached(
+                title=ppt_title[:120],
+                content=ppt_content,
+            )
+            col_pptx, col_pdf = st.columns([1, 1], gap="small")
+            with col_pptx:
+                st.download_button(
+                    label="Download PPTX",
+                    data=ppt_bytes,
+                    file_name=f"crh_agent_answer_{idx//2 + 1}.pptx",
+                    mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                    use_container_width=True,
+                    key=f"pptx_download_{idx}",
+                )
+            with col_pdf:
+                qa_payload = build_qa_pdf_payload(
+                    question=question or "",
+                    answer_text=message.get("content", ""),
+                    thinking_steps=message.get("thinking_steps", []),
+                    tool_calls=message.get("tool_calls", []),
+                    sources=message.get("sources", []),
+                )
+                qa_pdf_bytes = generate_qa_pdf_bytes_cached(
+                    title=(ppt_title or "CRH Agent Answer")[:120],
+                    payload_text=qa_payload,
+                )
+                st.download_button(
+                    label="Download PDF",
+                    data=qa_pdf_bytes,
+                    file_name=f"crh_agent_answer_{idx//2 + 1}.pdf",
+                    mime="application/pdf",
+                    use_container_width=True,
+                    key=f"pdf_download_{idx}",
+                )
         else:
             # For user messages, just show content
             st.markdown(message["content"])
