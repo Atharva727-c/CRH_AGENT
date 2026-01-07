@@ -863,6 +863,8 @@ with st.sidebar:
         st.session_state.messages = []
         st.session_state.pdf_bytes = None
         st.session_state.pdf_regenerate = True
+        # Safe to reset here (the welcome input widget isn't instantiated in this scope)
+        st.session_state["welcome_input"] = ""
         st.rerun()
     
     st.markdown("---")
@@ -1114,8 +1116,47 @@ if len(st.session_state.messages) == 0:
             height: 78px !important;
             line-height: 78px !important;
         }
-        .welcome-input .stTextInput input::placeholder {
+        /* Hide Streamlit's "Press Enter to apply" hint for the welcome input */
+        div[data-testid='stTextInput']:has(input[aria-label='Message input'])
+            [data-testid='InputInstructions'] {
+            display: none !important;
+        }
+
+        input[aria-label='Message input']::placeholder {
             color: rgba(255, 255, 255, 0.5) !important;
+        }
+
+        /* Arrow submit button (ChatGPT-style) */
+        div[data-testid="stFormSubmitButton"] button {
+            width: 78px !important;
+            height: 78px !important;
+            padding: 0 !important;
+            border-radius: 9999px !important;
+            background: rgba(255, 255, 255, 0.92) !important;
+            color: rgba(20, 20, 28, 1) !important;
+            border: 1px solid rgba(255, 255, 255, 0.25) !important;
+            box-shadow: 0 10px 26px rgba(0, 0, 0, 0.25) !important;
+            font-size: 44px !important;
+            font-weight: 700 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            line-height: 1 !important;
+        }
+
+        /* Force the arrow glyph to scale (Streamlit may render it inside <p>/<span>) */
+        div[data-testid="stFormSubmitButton"] button * {
+            font-size: 44px !important;
+            line-height: 1 !important;
+        }
+
+        div[data-testid="stFormSubmitButton"] button p {
+            margin: 0 !important;
+        }
+
+        div[data-testid="stFormSubmitButton"] button:hover {
+            background: rgba(255, 255, 255, 1) !important;
+            transform: translateY(-1px);
         }
         
         /* Sample buttons - LARGER */
@@ -1141,20 +1182,26 @@ if len(st.session_state.messages) == 0:
     # Input in a centered container - WIDER
     col1, col2, col3 = st.columns([1, 2.5, 1])
     with col2:
-        user_input = st.text_input(
-            label="Message input",
-            placeholder="Ask anything",
-            key="welcome_input",
-            label_visibility="collapsed",
-        )
+        with st.form("welcome_form", clear_on_submit=True):
+            col_in, col_submit = st.columns([0.88, 0.12], gap="small")
+            with col_in:
+                st.text_input(
+                    label="Message input",
+                    placeholder="Ask anything",
+                    key="welcome_input",
+                    label_visibility="collapsed",
+                )
+            with col_submit:
+                submitted = st.form_submit_button("↑", use_container_width=True)
 
-        # Handle input submission: enqueue + rerun immediately so the UI switches
-        # to the bottom chat input while the LLM is thinking.
-        if user_input:
-            st.session_state.messages.append({"role": "user", "content": user_input})
-            st.session_state.pending_prompt = user_input
-            st.session_state["welcome_input"] = ""
-            st.rerun()
+        if submitted:
+            prompt_text = (st.session_state.get("welcome_input") or "").strip()
+            if prompt_text:
+                st.session_state.messages.append(
+                    {"role": "user", "content": prompt_text}
+                )
+                st.session_state.pending_prompt = prompt_text
+                st.rerun()
         
         # Small spacer
         st.markdown("<div style='height: 0.6rem;'></div>", unsafe_allow_html=True)
