@@ -10,7 +10,12 @@ from datetime import datetime
 from dotenv import load_dotenv
 import snowflake.connector
 from fpdf import FPDF
-from pptx_generator import build_ppt_content, generate_ppt_bytes_cached
+from epam_dial_client import generate_ppt_narrative
+from ppt_text_store import save_ppt_text
+from pptx_template_generator import (
+    generate_pptx_bytes_from_template,
+    parse_llm_text_to_slides,
+)
 from pdf_generator import build_qa_pdf_payload, generate_qa_pdf_bytes_cached
 
 # Load environment variables
@@ -1024,29 +1029,43 @@ for idx, message in enumerate(st.session_state.messages):
             if "sources" in message and message["sources"]:
                 display_sources(message["sources"])
 
-            # Download PPTX for this particular Q/A
+            # Download PPTX (now generates PPT narrative via EPAM Dial and stores to .txt)
             question = None
             if idx > 0 and st.session_state.messages[idx - 1].get("role") == "user":
                 question = st.session_state.messages[idx - 1].get("content", "")
-            ppt_title = (question or "CRH Agent Answer").strip()
-            ppt_content = build_ppt_content(
-                answer_text=message.get("content", ""),
-                sources=message.get("sources", []),
-            )
-            ppt_bytes = generate_ppt_bytes_cached(
-                title=ppt_title[:120],
-                content=ppt_content,
-            )
             col_pptx, col_pdf = st.columns([1, 1], gap="small")
             with col_pptx:
-                st.download_button(
-                    label="Download PPTX",
-                    data=ppt_bytes,
-                    file_name=f"crh_agent_answer_{idx//2 + 1}.pptx",
-                    mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                if st.button(
+                    "Download PPTX",
                     use_container_width=True,
-                    key=f"pptx_download_{idx}",
-                )
+                    key=f"pptx_btn_{idx}",
+                ):
+                    with st.spinner("Generating PPT narrative + PPTX..."):
+                        narrative = generate_ppt_narrative(
+                            question=question or "",
+                            answer=message.get("content", ""),
+                            sources=message.get("sources", []),
+                        )
+                        out_path = save_ppt_text(
+                            base_name=f"ppt_{idx//2 + 1}",
+                            text=narrative,
+                        )
+
+                        slides = parse_llm_text_to_slides(narrative)
+                        pptx_bytes = generate_pptx_bytes_from_template(
+                            template_path="template.pptx",
+                            slides_data=slides,
+                        )
+
+                    st.caption(f"PPT narrative saved to `{out_path}`")
+                    st.download_button(
+                        label="Download PPTX file",
+                        data=pptx_bytes,
+                        file_name=f"crh_agent_answer_{idx//2 + 1}.pptx",
+                        mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                        use_container_width=True,
+                        key=f"pptx_download_{idx}",
+                    )
             with col_pdf:
                 qa_payload = build_qa_pdf_payload(
                     question=question or "",
@@ -1056,7 +1075,7 @@ for idx, message in enumerate(st.session_state.messages):
                     sources=message.get("sources", []),
                 )
                 qa_pdf_bytes = generate_qa_pdf_bytes_cached(
-                    title=(ppt_title or "CRH Agent Answer")[:120],
+                    title=((question or "CRH Agent Answer").strip() or "CRH Agent Answer")[:120],
                     payload_text=qa_payload,
                 )
                 st.download_button(
@@ -1172,7 +1191,7 @@ if len(st.session_state.messages) == 0:
     
     # Spacer to push content to vertical center
     st.markdown("<div style='height: 28vh;'></div>", unsafe_allow_html=True)
-    
+
     # Centered title (match CRH Agent Chat size)
     st.markdown(
         "<div class='welcome-heading'>What can I help with?</div>",
