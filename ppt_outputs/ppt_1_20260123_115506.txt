@@ -1,0 +1,53 @@
+**Slide Content:**
+
+---
+
+### 1) Executive Summary  
+- Apple achieved **$416.16B in revenue** for 2025, reflecting **6.43% YoY growth**.  
+- Q4 2025 revenue reached **$102.5B**, with a net profit of **$27.5B** ($1.85 per diluted share).  
+- Profitability growth of **22.70% in Q4** highlights strong operational efficiency.  
+- Strategic focus on AI, partnerships, and Siri updates positions Apple for sustained growth.  
+
+---
+
+### 2) Key Insights  
+- **Revenue Growth:** 2025’s **6.43% YoY growth** marks a significant acceleration compared to 2024 (+2.02%) and 2023 (-2.8%).  
+- **Profitability:** Q4 net profit growth of **22.70% YoY** indicates improved cost management and operational efficiency.  
+- **Strategic Investments:** AI-driven initiatives (e.g., Siri updates, OpenAI partnership) signal a shift toward innovation and future-proofing.  
+- **Market Confidence:** Strong Q4 results reinforce Apple’s ability to recover from prior years’ slower growth.  
+
+---
+
+### 3) Key Trends  
+- **AI Integration:** Apple’s focus on AI (e.g., Siri updates, ChatGT partnership) aligns with broader industry trends toward intelligent systems.  
+- **Profit Margin Expansion:** Profitability growth outpacing revenue growth suggests improved cost structures and premium product pricing.  
+- **Consumer Demand Recovery:** Q4 revenue growth of **7.94% YoY** indicates strong consumer demand despite macroeconomic uncertainties.  
+- **Tech Ecosystem Evolution:** Continued investment in partnerships and ecosystem integration strengthens Apple’s competitive moat.  
+
+---
+
+### 4) Risks / Watchouts  
+- **AI Competition:** Rising competition in AI (e.g., Google, Microsoft) could challenge Apple’s market share in intelligent systems.  
+- **Macroeconomic Factors:** Potential global economic slowdowns or inflationary pressures could impact consumer spending on premium products.  
+- **Execution Risks:** Delays or underperformance in AI-related initiatives (e.g., Siri updates) may hinder growth momentum.  
+- **Regulatory Scrutiny:** Increasing global regulatory focus on tech giants could pose legal and financial risks.  
+
+---
+
+### 5) Recommended Next Actions  
+- **Accelerate AI Development:** Prioritize timely delivery of Siri updates and deepen integration with ChatGT to maintain competitive edge.  
+- **Enhance Profitability:** Continue optimizing operational efficiency to sustain profit margin growth.  
+- **Diversify Revenue Streams:** Explore additional revenue opportunities in services and emerging markets to mitigate risks from hardware dependency.  
+- **Monitor Regulatory Landscape:** Proactively address potential regulatory challenges by strengthening compliance and transparency measures.  
+
+---
+
+### 6) Sources  
+- CNBC: [Apple Q4 2025 Earnings Report](https://www.cnbc.com/2025/10/30/apple-aapl-earnings-report-q4-2025.html)  
+- MacRumors: [Apple Q4 2025 Earnings](https://www.macrumors.com/2025/10/30/apple-4q-2025-earnings/)  
+- MacroTrends: [Apple Revenue Data](https://www.macrotrends.net/stocks/charts/AAPL/apple/revenue)  
+- Yahoo Finance: [Apple Key Statistics](https://finance.yahoo.com/quote/AAPL/key-statistics/)  
+
+--- 
+
+This structure ensures clarity and focus, aligning with the high-signal, presentation-ready requirements.

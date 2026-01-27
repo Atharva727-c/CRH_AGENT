@@ -73,27 +73,10 @@ def build_qa_pdf_payload(
     parts.append("")
     parts.append(f"A: {answer_text.strip() if answer_text else ''}")
 
-    ts = list(thinking_steps or [])
-    if ts:
-        parts.append("")
-        parts.append("Thinking Steps:")
-        for step in ts:
-            title = (step.get("title") or "Planning the next steps").strip()
-            desc = (step.get("description") or step.get("content") or "").strip()
-            if not desc:
-                continue
-            parts.append(f"- {title}")
-            parts.append(f"  {desc}")
-
-    tc = list(tool_calls or [])
-    if tc:
-        parts.append("")
-        parts.append("Tool Calls:")
-        for call in tc:
-            tool = (call.get("tool") or "Unknown").strip()
-            inp = call.get("input", "")
-            parts.append(f"- {tool}")
-            parts.append(f"  Input: {inp}")
+    # Intentionally exclude Thinking Steps and Tool Calls from the PDF payload.
+    # Keep the parameters for backwards compatibility with the Streamlit call-site.
+    _ = thinking_steps
+    _ = tool_calls
 
     src = list(sources or [])
     if src:
@@ -117,7 +100,7 @@ def generate_qa_pdf_bytes(title: str, payload_text: str) -> bytes:
     Beautified layout:
     - Header bar + title
     - Shaded Question/Answer blocks
-    - Section headings (Thinking Steps / Tool Calls / Sources)
+    - Section headings (Sources)
     - Bullets + indentation
     """
     pdf = FPDF()
@@ -187,27 +170,12 @@ def generate_qa_pdf_bytes(title: str, payload_text: str) -> bytes:
 
     # Parse payload into sections (based on our deterministic formatting),
     # then render in the requested chronology:
-    # Question -> Thinking Steps -> Answer -> Sources
+    # Question -> Answer -> Sources
     question_text = ""
     answer_text = ""
-    thinking_steps: list[tuple[str, list[str]]] = []
-    tool_calls: list[tuple[str, list[str]]] = []
     sources: list[str] = []
 
     section: str | None = None
-    pending_title: str | None = None
-    pending_lines: list[str] = []
-
-    def _flush_pending():
-        nonlocal pending_title, pending_lines
-        if pending_title is None:
-            return
-        if section == "thinking_steps":
-            thinking_steps.append((pending_title, pending_lines))
-        elif section == "tool_calls":
-            tool_calls.append((pending_title, pending_lines))
-        pending_title = None
-        pending_lines = []
 
     lines = (payload_text or "").splitlines()
     for raw in lines:
@@ -216,27 +184,28 @@ def generate_qa_pdf_bytes(title: str, payload_text: str) -> bytes:
             continue
 
         if line.startswith("Q:"):
-            _flush_pending()
             section = "q"
             question_text = line[2:].strip()
             continue
 
         if line.startswith("A:"):
-            _flush_pending()
             section = "a"
             answer_text = line[2:].strip()
             continue
 
-        if line.strip() in {"Thinking Steps:", "Tool Calls:", "Sources:"}:
-            _flush_pending()
-            section = line.strip().rstrip(":").lower().replace(" ", "_")
+        header = line.strip()
+        if header == "Sources:":
+            section = "sources"
+            continue
+        # Backwards-compatible: if older cached payloads include these sections,
+        # ignore them completely.
+        if header in {"Thinking Steps:", "Tool Calls:"}:
+            section = "skip"
             continue
 
         # Indented continuation lines (descriptions / inputs)
         if line.startswith("  "):
-            if section in {"thinking_steps", "tool_calls"} and pending_title:
-                pending_lines.append(line.strip())
-            elif section == "q":
+            if section == "q":
                 question_text = (question_text + "\n" + line.strip()).strip()
             elif section == "a":
                 answer_text = (answer_text + "\n" + line.strip()).strip()
@@ -244,11 +213,7 @@ def generate_qa_pdf_bytes(title: str, payload_text: str) -> bytes:
 
         # Bullet lines
         if line.startswith("- "):
-            if section in {"thinking_steps", "tool_calls"}:
-                _flush_pending()
-                pending_title = line[2:].strip()
-                pending_lines = []
-            elif section == "sources":
+            if section == "sources":
                 sources.append(line[2:].strip())
             continue
 
@@ -263,27 +228,9 @@ def generate_qa_pdf_bytes(title: str, payload_text: str) -> bytes:
             # Ignore unknown sections
             continue
 
-    _flush_pending()
-
     # Render in requested order
     if question_text:
         _card_block("Question", question_text)
-
-    if thinking_steps:
-        _section_title("Thinking Steps")
-        for t, desc_lines in thinking_steps:
-            _bullet(t, level=0)
-            for dl in desc_lines:
-                _muted(dl, level=1)
-        _hline(4)
-
-    if tool_calls:
-        _section_title("Tool Calls")
-        for t, inp_lines in tool_calls:
-            _bullet(t, level=0)
-            for il in inp_lines:
-                _muted(il, level=1)
-        _hline(4)
 
     if answer_text:
         _card_block("Answer", answer_text)
