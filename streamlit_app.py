@@ -6,6 +6,7 @@ import streamlit as st
 import json
 import os
 import re
+import tempfile
 from datetime import datetime
 from dotenv import load_dotenv
 import snowflake.connector
@@ -467,6 +468,29 @@ SCHEMA = os.getenv('SNOWFLAKE_SCHEMA')
 AGENT_NAME = "CRH_AGENT"
 PROCEDURE_NAME = "RUN_CORTEX_AGENT"
 
+# Snowflake table links (for clickable structured sources)
+TABLE_LINKS = {
+    "COMPANY_MASTER": (
+        "https://app.snowflake.com/epampartnerorg/epampartner/#/data/"
+        "databases/CRH_INTEL/schemas/DATA/table/COMPANY_MASTER/data-preview"
+    ),
+    "FINANCIALS_FACT": (
+        "https://app.snowflake.com/epampartnerorg/epampartner/#/data/"
+        "databases/CRH_INTEL/schemas/DATA/table/FINANCIALS_FACT/data-preview"
+    ),
+    "SUSTAINABILITY_METRICS": (
+        "https://app.snowflake.com/epampartnerorg/epampartner/#/data/"
+        "databases/CRH_INTEL/schemas/DATA/table/SUSTAINABILITY_METRICS/data-preview"
+    ),
+    "PRODUCT_SEGMENTS": (
+        "https://app.snowflake.com/epampartnerorg/epampartner/#/data/"
+        "databases/CRH_INTEL/schemas/DATA/table/PRODUCT_SEGMENTS/data-preview"
+    ),
+}
+
+# Stage that can contain referenced PDF reports used by the agent.
+REPORTS_STAGE_NAME = "CRH_INTEL.DATA.REPORTS_STAGE"
+
 def connect_to_snowflake():
     """Connect to Snowflake"""
     try:
@@ -525,32 +549,78 @@ def parse_agent_response(response_text):
                 "input": input_data
             })
         
-        # Extract final answer (🤖 [FINAL ANSWER]:)
-        final_answer_pattern = r'🤖\s*\[FINAL ANSWER\]:\s*(.*?)(?=\*\*Sources:\*\*|$)'
+        # Extract final answer (🤖 [FINAL ANSWER]:), stopping before Sources (bold or plain)
+        final_answer_pattern = (
+            r'🤖\s*\[FINAL ANSWER\]:\s*(.*?)(?=(?:\*\*Sources:\*\*|Sources:)|$)'
+        )
         final_answer_match = re.search(final_answer_pattern, text, re.DOTALL)
         if final_answer_match:
             final_text = final_answer_match.group(1).strip()
         
-        # Extract sources (**Sources:**)
-        sources_pattern = r'\*\*Sources:\*\*\s*\n(.*?)(?=🧠|🛠️|🤖|$)'
+        # Extract sources (tolerant: "**Sources:**" or "Sources:")
+        sources_pattern = r'(?:\*\*Sources:\*\*|Sources:)\s*\n(.*?)(?=🧠|🛠️|🤖|$)'
         sources_match = re.search(sources_pattern, text, re.DOTALL)
         if sources_match:
             sources_text = sources_match.group(1).strip()
-            # Extract URLs (lines starting with -)
-            url_pattern = r'-\s*(https?://[^\s\n]+)'
-            source_urls = re.findall(url_pattern, sources_text)
-            for url in source_urls:
-                sources.append({
-                    "url": url.strip(),
-                    "title": url.strip()
-                })
+            seen_urls: set[str] = set()
+            seen_titles: set[str] = set()
+
+            # 1) Extract table references like "Table: COMPANY_MASTER"
+            for line in sources_text.splitlines():
+                line_stripped = line.strip()
+                if not line_stripped:
+                    continue
+
+                normalized = re.sub(r"^(?:[-•]|\*)\s+", "", line_stripped).strip()
+
+                m_table = re.match(
+                    r"^Table:\s*([A-Z0-9_]+)\s*$",
+                    normalized,
+                    flags=re.IGNORECASE,
+                )
+                if m_table:
+                    table_name = m_table.group(1).upper()
+                    title = f"Table: {table_name}"
+                    url = TABLE_LINKS.get(table_name, "")
+                    if title not in seen_titles:
+                        sources.append({"url": url, "title": title})
+                        seen_titles.add(title)
+                        if url:
+                            seen_urls.add(url)
+                    continue
+
+                # 2) Extract PDF document references that may be stage paths or filenames.
+                # Example lines can be:
+                # - Avient/Some-Report.pdf
+                # - Document: Some-Report.pdf
+                # Avoid treating URL lines as stage PDFs.
+                if normalized.lower().startswith(("http://", "https://", "www.")):
+                    continue
+
+                m_pdf = re.search(r"([A-Za-z0-9_./\\-]+\.pdf)\b", normalized)
+                if m_pdf:
+                    pdf_path = m_pdf.group(1).strip().lstrip("./\\")
+                    title = f"Document: {pdf_path}"
+                    if title not in seen_titles:
+                        sources.append({"url": "", "title": title})
+                        seen_titles.add(title)
+
+            # 3) Extract explicit URLs (supports "- https://...", "- Title: https://...", or bare URLs)
+            url_pattern = r"(https?://[^\s\)\]\n]+|www\.[^\s\)\]\n]+)"
+            for url in re.findall(url_pattern, sources_text, flags=re.IGNORECASE):
+                u = url.strip().rstrip(".,;")
+                if u.lower().startswith("www."):
+                    u = "https://" + u
+                if u not in seen_urls:
+                    sources.append({"url": u, "title": u})
+                    seen_urls.add(u)
         
         # If no final answer found, try to get the last section before Sources
         if not final_text:
             # Try to find text after the last tool call or planning step
             parts = re.split(
-                r'(🧠\s*\[PLANNING\]:|🛠️\s*\[TOOL CALL\]:|🤖\s*\[FINAL ANSWER\]:|\*\*Sources:\*\*)',
-                text
+                r'(🧠\s*\[PLANNING\]:|🛠️\s*\[TOOL CALL\]:|🤖\s*\[FINAL ANSWER\]:|\*\*Sources:\*\*|Sources:)',
+                text,
             )
             if len(parts) > 1:
                 # Get the last meaningful text section
@@ -670,10 +740,93 @@ def display_sources(sources):
     
     st.markdown("**Sources:**")
     for source in sources:
-        url = source.get("url", "")
+        url = source.get("url", "").strip()
         title = source.get("title", url)
         if url:
-            st.markdown(f'<a href="{url}" target="_blank" class="source-link">🔗 {title}</a>', unsafe_allow_html=True)
+            st.markdown(
+                f'<a href="{url}" target="_blank" class="source-link">🔗 {title}</a>',
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(f"- {title}")
+
+
+def fetch_pdf_from_reports_stage(stage_relative_path: str) -> bytes:
+    """
+    Fetch a PDF from a Snowflake stage and return its bytes.
+
+    stage_relative_path example:
+      Avient/Avient-Announces-Second-Quarter-2025-Results.pdf
+    """
+    conn = connect_to_snowflake()
+    if not conn:
+        raise RuntimeError("Not connected to Snowflake.")
+
+    cursor = conn.cursor()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        stage_path = f"@{REPORTS_STAGE_NAME}/{stage_relative_path}"
+        cursor.execute(f"GET '{stage_path}' 'file://{tmpdir}'")
+        local_file = os.path.join(tmpdir, os.path.basename(stage_relative_path))
+        with open(local_file, "rb") as f:
+            return f.read()
+
+
+def display_pdf_sources(pdf_sources: list[str]):
+    """Render PDF report references as external links or stage-backed downloads."""
+    if not pdf_sources:
+        return
+
+    st.markdown("**PDF Documents:**")
+    for src in pdf_sources:
+        src = (src or "").strip()
+        if not src:
+            continue
+
+        # Case 1: External URL → clickable link
+        if src.lower().startswith("http"):
+            st.markdown(
+                f'<a href="{src}" target="_blank" class="source-link">📄 '
+                f"{os.path.basename(src)}</a>",
+                unsafe_allow_html=True,
+            )
+            continue
+
+        # Case 2: Snowflake stage PDF → download button
+        try:
+            pdf_bytes = fetch_pdf_from_reports_stage(src)
+            filename = os.path.basename(src)
+            st.download_button(
+                label=f"📄 {filename}",
+                data=pdf_bytes,
+                file_name=filename,
+                mime="application/pdf",
+                use_container_width=True,
+                key=f"stage_pdf_{src}",
+            )
+        except Exception as e:
+            st.error(f"Failed to load {src}: {e}")
+
+
+def extract_used_tables(text: str) -> list[str]:
+    """Detect which Snowflake tables were used based on agent output / SQL text."""
+    used_tables: list[str] = []
+    if not text:
+        return used_tables
+
+    text_lower = text.lower()
+    for table in TABLE_LINKS.keys():
+        if table.lower() in text_lower:
+            used_tables.append(table)
+
+    return used_tables
+
+
+def tables_to_sources(used_tables: list[str]) -> list[dict]:
+    sources: list[dict] = []
+    for table in used_tables:
+        if table in TABLE_LINKS:
+            sources.append({"title": f"Table: {table}", "url": TABLE_LINKS[table]})
+    return sources
 
 def sanitize_text(text):
     """Remove or replace Unicode characters that aren't supported by basic fonts"""
@@ -909,6 +1062,9 @@ def process_user_prompt(prompt: str):
 
                 # Parse the response
                 parsed = parse_agent_response(response_json)
+                full_agent_text = (
+                    str(parsed.get("tool_calls", "")) + " " + str(parsed.get("final_text", ""))
+                )
 
                 # Display thinking steps FIRST (before the response)
                 if parsed["thinking_steps"]:
@@ -924,9 +1080,42 @@ def process_user_prompt(prompt: str):
                 else:
                     st.info("No text response found in the agent output.")
 
-                # Display sources
                 if parsed["sources"]:
                     display_sources(parsed["sources"])
+
+                # Display structured table sources (clickable), avoiding duplicates
+                used_tables = extract_used_tables(full_agent_text)
+                table_sources = tables_to_sources(used_tables)
+
+                existing_urls = {
+                    s.get("url")
+                    for s in parsed["sources"]
+                    if isinstance(s, dict) and s.get("url")
+                }
+                for src in table_sources:
+                    if src.get("url") not in existing_urls:
+                        parsed["sources"].append(src)
+                        if src.get("url"):
+                            existing_urls.add(src["url"])
+
+                if used_tables:
+                    st.markdown("### 📊 Structured Data Sources")
+                    for table in used_tables:
+                        if table in TABLE_LINKS:
+                            url = TABLE_LINKS[table]
+                            st.markdown(
+                                f'<a href="{url}" target="_blank" class="source-link">🔗 {table}</a>',
+                                unsafe_allow_html=True,
+                            )
+
+                # Display PDF documents (external links or stage-backed downloads)
+                pdf_filenames = [
+                    str(s.get("title", "")).replace("Document:", "").strip()
+                    for s in parsed["sources"]
+                    if isinstance(s, dict)
+                    and str(s.get("title", "")).lower().endswith(".pdf")
+                ]
+                display_pdf_sources(pdf_filenames)
 
                 # Add assistant message to chat history
                 st.session_state.messages.append({
@@ -972,6 +1161,9 @@ def process_pending_prompt(prompt: str):
                         })
 
                 parsed = parse_agent_response(response_json)
+                full_agent_text = (
+                    str(parsed.get("tool_calls", "")) + " " + str(parsed.get("final_text", ""))
+                )
 
                 if parsed["thinking_steps"]:
                     display_thinking_steps(parsed["thinking_steps"])
@@ -986,6 +1178,37 @@ def process_pending_prompt(prompt: str):
 
                 if parsed["sources"]:
                     display_sources(parsed["sources"])
+
+                used_tables = extract_used_tables(full_agent_text)
+                table_sources = tables_to_sources(used_tables)
+                existing_urls = {
+                    s.get("url")
+                    for s in parsed["sources"]
+                    if isinstance(s, dict) and s.get("url")
+                }
+                for src in table_sources:
+                    if src.get("url") not in existing_urls:
+                        parsed["sources"].append(src)
+                        if src.get("url"):
+                            existing_urls.add(src["url"])
+
+                if used_tables:
+                    st.markdown("### 📊 Structured Data Sources")
+                    for table in used_tables:
+                        if table in TABLE_LINKS:
+                            url = TABLE_LINKS[table]
+                            st.markdown(
+                                f'<a href="{url}" target="_blank" class="source-link">🔗 {table}</a>',
+                                unsafe_allow_html=True,
+                            )
+
+                pdf_filenames = [
+                    str(s.get("title", "")).replace("Document:", "").strip()
+                    for s in parsed["sources"]
+                    if isinstance(s, dict)
+                    and str(s.get("title", "")).lower().endswith(".pdf")
+                ]
+                display_pdf_sources(pdf_filenames)
 
                 st.session_state.messages.append({
                     "role": "assistant",
@@ -1028,6 +1251,14 @@ for idx, message in enumerate(st.session_state.messages):
             # Finally display sources
             if "sources" in message and message["sources"]:
                 display_sources(message["sources"])
+
+            pdf_filenames = [
+                str(s.get("title", "")).replace("Document:", "").strip()
+                for s in message["sources"]
+                if isinstance(s, dict)
+                and str(s.get("title", "")).lower().endswith(".pdf")
+            ]
+            display_pdf_sources(pdf_filenames)
 
             # Download PPTX (now generates PPT narrative via EPAM Dial and stores to .txt)
             question = None
