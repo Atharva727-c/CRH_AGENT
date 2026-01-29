@@ -821,6 +821,40 @@ def display_sources(sources):
         elif url:
             st.markdown(f"🔗 [{title if title else url}]({url})")
 
+
+def display_pdf_sources(pdf_sources: list[str]):
+    """Show referenced PDFs as links or downloads (Snowflake stage)."""
+    if not pdf_sources:
+        return
+
+    st.markdown("**PDF Documents:**")
+    for src in pdf_sources:
+        src = (src or "").strip()
+        if not src:
+            continue
+
+        if src.lower().startswith(("http://", "https://")):
+            st.markdown(
+                f'<a href="{src}" target="_blank" class="source-link">📄 '
+                f"{os.path.basename(src)}</a>",
+                unsafe_allow_html=True,
+            )
+            continue
+
+        try:
+            pdf_bytes = fetch_pdf_from_reports_stage(src)
+            filename = os.path.basename(src)
+            st.download_button(
+                label=f"📄 {filename}",
+                data=pdf_bytes,
+                file_name=filename,
+                mime="application/pdf",
+                use_container_width=True,
+                key=f"stage_pdf_{src}",
+            )
+        except Exception as e:
+            st.error(f"Failed to load {src}: {e}")
+
 def extract_used_tables(text):
     """
     Detect which Snowflake tables were used based on agent output / SQL text
