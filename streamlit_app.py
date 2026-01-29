@@ -6,6 +6,7 @@ import streamlit as st
 import json
 import os
 import re
+import tempfile
 from datetime import datetime
 from dotenv import load_dotenv
 import snowflake.connector
@@ -1146,6 +1147,40 @@ def process_user_prompt(prompt: str):
                             )
 
 
+                # Display structured table sources (clickable), avoiding duplicates
+                used_tables = extract_used_tables(full_agent_text)
+                table_sources = tables_to_sources(used_tables)
+
+                existing_urls = {
+                    s.get("url")
+                    for s in parsed["sources"]
+                    if isinstance(s, dict) and s.get("url")
+                }
+                for src in table_sources:
+                    if src.get("url") not in existing_urls:
+                        parsed["sources"].append(src)
+                        if src.get("url"):
+                            existing_urls.add(src["url"])
+
+                if used_tables:
+                    st.markdown("### 📊 Structured Data Sources")
+                    for table in used_tables:
+                        if table in TABLE_LINKS:
+                            url = TABLE_LINKS[table]
+                            st.markdown(
+                                f'<a href="{url}" target="_blank" class="source-link">🔗 {table}</a>',
+                                unsafe_allow_html=True,
+                            )
+
+                # Display PDF documents (external links or stage-backed downloads)
+                pdf_filenames = [
+                    str(s.get("title", "")).replace("Document:", "").strip()
+                    for s in parsed["sources"]
+                    if isinstance(s, dict)
+                    and str(s.get("title", "")).lower().endswith(".pdf")
+                ]
+                display_pdf_sources(pdf_filenames)
+
                 # Add assistant message to chat history
                 st.session_state.messages.append({
                     "role": "assistant",
@@ -1190,6 +1225,9 @@ def process_pending_prompt(prompt: str):
                         })
 
                 parsed = parse_agent_response(response_json)
+                full_agent_text = (
+                    str(parsed.get("tool_calls", "")) + " " + str(parsed.get("final_text", ""))
+                )
 
                 if parsed["thinking_steps"]:
                     display_thinking_steps(parsed["thinking_steps"])
@@ -1202,6 +1240,37 @@ def process_pending_prompt(prompt: str):
                 else:
                     st.info("No text response found in the agent output.")
 
+
+                used_tables = extract_used_tables(full_agent_text)
+                table_sources = tables_to_sources(used_tables)
+                existing_urls = {
+                    s.get("url")
+                    for s in parsed["sources"]
+                    if isinstance(s, dict) and s.get("url")
+                }
+                for src in table_sources:
+                    if src.get("url") not in existing_urls:
+                        parsed["sources"].append(src)
+                        if src.get("url"):
+                            existing_urls.add(src["url"])
+
+                if used_tables:
+                    st.markdown("### 📊 Structured Data Sources")
+                    for table in used_tables:
+                        if table in TABLE_LINKS:
+                            url = TABLE_LINKS[table]
+                            st.markdown(
+                                f'<a href="{url}" target="_blank" class="source-link">🔗 {table}</a>',
+                                unsafe_allow_html=True,
+                            )
+
+                pdf_filenames = [
+                    str(s.get("title", "")).replace("Document:", "").strip()
+                    for s in parsed["sources"]
+                    if isinstance(s, dict)
+                    and str(s.get("title", "")).lower().endswith(".pdf")
+                ]
+                display_pdf_sources(pdf_filenames)
 
                 st.session_state.messages.append({
                     "role": "assistant",
